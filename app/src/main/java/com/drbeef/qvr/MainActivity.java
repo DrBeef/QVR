@@ -168,8 +168,6 @@ public class MainActivity
     //Shader Program
     public static int sp_Image;
 
-    private String sdcard = Environment.getExternalStorageDirectory().getPath();
-
     private DownloadTask mDownloadTask = null;
 
     public static boolean mQVRInitialised = false;
@@ -198,14 +196,11 @@ public class MainActivity
     }
 
     public void copy_asset(String name, String folder) {
-        File f = new File(sdcard + folder + name);
-        if (!f.exists() ||
-                //If file was somehow corrupted, copy the back-up
-                f.length() < 500) {
-
+        File f = new File(folder + name);
+        if (!f.exists()) {
             //Ensure we have an appropriate folder
-            new File(sdcard + folder).mkdirs();
-            _copy_asset(name, sdcard + folder + name);
+            new File(folder).mkdirs();
+            _copy_asset(name, folder + name);
         }
     }
 
@@ -315,13 +310,13 @@ public class MainActivity
         vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
 
         //At the very least ensure we have a directory containing a config file
-        copy_asset("config.cfg", "/QVR/id1/");
-        copy_asset("commandline.txt", "/QVR/");
+        copy_asset("config.cfg", QVRConfig.GetFullWorkingFolder() + "id1/");
+        copy_asset("commandline.txt", QVRConfig.GetFullWorkingFolder());
 
         //See if user is trying to use command line params
         BufferedReader br;
         try {
-            br = new BufferedReader(new FileReader(sdcard + "/QVR/commandline.txt"));
+            br = new BufferedReader(new FileReader(QVRConfig.GetFullWorkingFolder() + "commandline.txt"));
             String s;
             StringBuilder sb=new StringBuilder(0);
             while ((s=br.readLine())!=null)
@@ -343,7 +338,7 @@ public class MainActivity
         }
         else
         {
-            File f = new File(sdcard + "/QVR/id1/pak0.pak");
+            File f = new File(QVRConfig.GetFullWorkingFolder() + "id1/pak0.pak");
             if (!f.exists()) {
                 AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(
                         this);
@@ -569,7 +564,7 @@ public class MainActivity
 
         if (!mQVRInitialised && !mShowingSpashScreen)
         {
-            QVRJNILib.initialise(sdcard + "/QVR", commandLineParams);
+            QVRJNILib.initialise(QVRConfig.GetFullWorkingFolder(), commandLineParams);
 
             //Now calculate the auto lens centre correction
             CardboardDeviceParams device = cardboardView.getHeadMountedDisplay().getCardboardDeviceParams();
@@ -786,7 +781,9 @@ public class MainActivity
 
         if (System.currentTimeMillis() - triggerTimeout > 200) {
 
-            QVRJNILib.onKeyEvent(K_ENTER, KeyEvent.ACTION_DOWN, 0);
+            if (mQVRInitialised) {
+                QVRJNILib.onKeyEvent(K_ENTER, KeyEvent.ACTION_DOWN, 0);
+            }
 
             cardboardView.resetHeadTracker();
 
@@ -873,7 +870,10 @@ public class MainActivity
         if (keyCode == K_ESCAPE)
             cardboardView.resetHeadTracker();
 
-        QVRJNILib.onKeyEvent( keyCode, action, character );
+        if (mQVRInitialised) {
+            QVRJNILib.onKeyEvent(keyCode, action, character);
+        }
+
         return true;
     }
 

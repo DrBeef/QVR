@@ -31,11 +31,9 @@ class DownloadTask extends AsyncTask<Void, String, Void> {
 	
 	public boolean please_abort = false;
 
-	private String sdcard = Environment.getExternalStorageDirectory().getPath();
-
 	private String url = "https://www.dropbox.com/s/cgd8ynsvp8aen5v/quake106.zip?dl=1";
-	private String demofile = sdcard + "/QVR/quake106.zip";
-	private String pakfile = sdcard + "/QVR/id1/pak0.pak";
+	private String demofile = QVRConfig.GetFullWorkingFolder() + "quake106.zip";
+	private String pakfile = QVRConfig.GetFullWorkingFolder() + "id1/pak0.pak";
 
 	public DownloadTask set_context(Context context){
 		this.context = context;
@@ -102,7 +100,7 @@ class DownloadTask extends AsyncTask<Void, String, Void> {
 	    }
 
 		/// setup output directory		
-		new File(sdcard + "/QVR/id1").mkdirs();
+		new File(QVRConfig.GetFullWorkingFolder() + "id1").mkdirs();
 		
        	InputStream     is = null;
     	FileOutputStream        fos = null;
@@ -124,8 +122,7 @@ class DownloadTask extends AsyncTask<Void, String, Void> {
 	    	 
     		
     		int count = is.read (buffer);
-    		//Log.i( "DownloadTask.java", "received " + count + " bytes");
-    		
+
     	    if ( count<=0 ) break;
     	    fos.write (buffer, 0, count);
     	    
@@ -287,7 +284,7 @@ class DownloadTask extends AsyncTask<Void, String, Void> {
 	
 	@Override
 	protected void onPostExecute(Void unused) {
-		File f = new File(sdcard + "/QVR/id1/pak0.pak");
+		File f = new File(QVRConfig.GetFullWorkingFolder() + "id1/pak0.pak");
 		if (f.exists()) {
 			QVRJNILib.setDownloadStatus(1);
 		} else
