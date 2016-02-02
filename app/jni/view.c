@@ -76,11 +76,11 @@ cvar_t cl_followmodel_up_highpass1 = {CVAR_SAVE, "cl_followmodel_up_highpass1", 
 cvar_t cl_followmodel_up_highpass = {CVAR_SAVE, "cl_followmodel_up_highpass", "2", "gun following upward highpass in 1/s"};
 cvar_t cl_followmodel_up_lowpass = {CVAR_SAVE, "cl_followmodel_up_lowpass", "10", "gun following upward lowpass in 1/s"};
 
-cvar_t cl_viewmodel_scale = {0, "cl_viewmodel_scale", "1", "changes size of gun model, lower values prevent poking into walls but cause strange artifacts on lighting and especially r_stereo/vid_stereobuffer options where the size of the gun becomes visible"};
+cvar_t cl_viewmodel_scale = {0, "cl_viewmodel_scale", "0.75", "changes size of gun model, lower values prevent poking into walls but cause strange artifacts on lighting and especially r_stereo/vid_stereobuffer options where the size of the gun becomes visible"};
 
-cvar_t v_kicktime = {0, "v_kicktime", "0.5", "how long a view kick from damage lasts"};
-cvar_t v_kickroll = {0, "v_kickroll", "0.6", "how much a view kick from damage rolls your view"};
-cvar_t v_kickpitch = {0, "v_kickpitch", "0.6", "how much a view kick from damage pitches your view"};
+cvar_t v_kicktime = {0, "v_kicktime", "0.0", "how long a view kick from damage lasts"};
+cvar_t v_kickroll = {0, "v_kickroll", "0.0", "how much a view kick from damage rolls your view"};
+cvar_t v_kickpitch = {0, "v_kickpitch", "0.0 ", "how much a view kick from damage pitches your view"};
 
 cvar_t v_iyaw_cycle = {0, "v_iyaw_cycle", "2", "v_idlescale yaw speed"};
 cvar_t v_iroll_cycle = {0, "v_iroll_cycle", "0.5", "v_idlescale roll speed"};
@@ -647,7 +647,7 @@ void V_CalcRefdefUsing (const matrix4x4_t *entrendermatrix, const vec3_t clviewa
 			// angles
 			if (cldead && v_deathtilt.integer)
 				viewangles[ROLL] = v_deathtiltangle.value;
-			VectorAdd(viewangles, cl.punchangle, viewangles);
+			//VectorAdd(viewangles, cl.punchangle, viewangles);
 			viewangles[ROLL] += V_CalcRoll(clviewangles, clvelocity);
 			if (v_dmg_time > 0)
 			{
@@ -655,7 +655,7 @@ void V_CalcRefdefUsing (const matrix4x4_t *entrendermatrix, const vec3_t clviewa
 				viewangles[PITCH] += v_dmg_time/v_kicktime.value*v_dmg_pitch;
 			}
 			// origin
-			VectorAdd(vieworg, cl.punchvector, vieworg);
+			//VectorAdd(vieworg, cl.punchvector, vieworg);
 			if (!cldead)
 			{
 				double xyspeed, bob, bobfall;
