@@ -13,11 +13,8 @@ import android.opengl.GLES20;
 import android.opengl.GLUtils;
 import android.opengl.Matrix;
 import android.os.Bundle;
-import android.os.Environment;
 import android.os.Vibrator;
-import android.util.DisplayMetrics;
 import android.util.Log;
-import android.view.Display;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.InputDevice;
@@ -25,11 +22,9 @@ import android.view.Window;
 import android.view.WindowManager;
 
 import com.google.vrtoolkit.cardboard.CardboardActivity;
-import com.google.vrtoolkit.cardboard.CardboardDeviceParams;
 import com.google.vrtoolkit.cardboard.CardboardView;
 import com.google.vrtoolkit.cardboard.Eye;
 import com.google.vrtoolkit.cardboard.HeadTransform;
-import com.google.vrtoolkit.cardboard.ScreenParams;
 import com.google.vrtoolkit.cardboard.Viewport;
 
 import java.io.BufferedReader;
@@ -105,8 +100,12 @@ public class MainActivity
     private float[] modelViewProjection;
     private float[] modelView;
 
-    private float screenDistance = 8f;
-    private float screenScale = 4f;
+    private float gameScreenScale = 7f;
+    private float gameScreenDistance = 8f;
+    private float splashScreenScale = 2f;
+    private float splashScreenDistance = 8f;
+    private float bigScreenScale = 4f;
+    private float bigScreenDistance = 8f;
 
     public static final String vs_Image =
             "uniform mat4 u_MVPMatrix;" +
@@ -148,10 +147,10 @@ public class MainActivity
     };
 
     public static final float[] SCREEN_COORDS = new float[] {
-            -1.3f, 1.0f, 1.0f,
-            -1.3f, -1.0f, 1.0f,
-            1.3f, -1.0f, 1.0f,
-            1.3f, 1.0f, 1.0f
+            -1.0f, 1.0f, 1.0f,
+            -1.0f, -1.0f, 1.0f,
+            1.0f, -1.0f, 1.0f,
+            1.0f, 1.0f, 1.0f
     };
 
     public static final float[] SPLASH_SCREEN_COORDS = new float[] {
@@ -519,6 +518,7 @@ public class MainActivity
     public void onNewFrame(HeadTransform headTransform) {
         if (mQVRInitialised) {
             headTransform.getEulerAngles(eulerAngles, 0);
+
             QVRJNILib.onNewFrame(-eulerAngles[0] / (M_PI / 180.0f), eulerAngles[1] / (M_PI / 180.0f), -eulerAngles[2] / (M_PI / 180.0f));
 
             //Check to see if we should update the eye buffer resolution
@@ -565,34 +565,6 @@ public class MainActivity
         if (!mQVRInitialised && !mShowingSpashScreen)
         {
             QVRJNILib.initialise(QVRConfig.GetFullWorkingFolder(), commandLineParams);
-
-            //Now calculate the auto lens centre correction
-            CardboardDeviceParams device = cardboardView.getHeadMountedDisplay().getCardboardDeviceParams();
-            ScreenParams scr = cardboardView.getScreenParams();
-            Display display = getWindowManager().getDefaultDisplay();
-            DisplayMetrics met = new DisplayMetrics();
-            display.getMetrics(met);
-            float dpmil = (met.xdpi / 25.4f);
-            float qscreen = (scr.getWidthMeters() * 1000.0f) / 4.0f;
-            float halflens = (device.getInterLensDistance() * 1000.0f) / 2.0f;
-            //Multiply by small fudge factor (20%)
-            float lensCentreOffset = ((halflens - qscreen) * dpmil) * 1.2f;
-
-            if (mVRMode == VRMODE_CARDBOARD) {
-                //Viewport size is not the same as screen resolution, so convert
-                lensCentreOffset = (lensCentreOffset / (scr.getWidth() / 2.0f)) * eye.getViewport().width;
-            }
-            else if (mVRMode == VRMODE_SIDEBYSIDE) {
-                //do nothing, no correction needed
-            }
-            else
-            {
-                //No offset required
-                lensCentreOffset = 0;
-            }
-
-            QVRJNILib.setCentreOffset((int)lensCentreOffset);
-
             mQVRInitialised = true;
         }
 
@@ -665,62 +637,56 @@ public class MainActivity
 
                 GLES20.glUseProgram(sp_Image);
 
+                // Build the ModelView and ModelViewProjection matrices
+                // for calculating screen position.
+                float[] perspective = eye.getPerspective(0.1f, 100.0f);
+                Matrix.setIdentityM(modelScreen, 0);
+
                 if ((bigScreen != 0) && mVRMode > 0) {
                     // Apply the eye transformation to the camera.
                     Matrix.multiplyMM(view, 0, eye.getEyeView(), 0, camera, 0);
 
-                    // Build the ModelView and ModelViewProjection matrices
-                    // for calculating screen position.
-                    float[] perspective = eye.getPerspective(0.1f, 100.0f);
-
-                    float scale = screenScale;
-                    if (mShowingSpashScreen)
-                        scale /= 2;
-
-                    // Object first appears directly in front of user.
-                    Matrix.setIdentityM(modelScreen, 0);
-                    Matrix.translateM(modelScreen, 0, 0, 0, -screenDistance);
-                    Matrix.scaleM(modelScreen, 0, scale, scale, 1.0f);
-
                     // Set the position of the screen
                     if (mShowingSpashScreen) {
-                        float mAngle = 360.0f * (float)((System.currentTimeMillis() % 3000) / 3000.0f);
+                        // Object first appears directly in front of user.
+                        Matrix.translateM(modelScreen, 0, 0, 0, -splashScreenDistance);
+                        Matrix.scaleM(modelScreen, 0, splashScreenScale, splashScreenScale, 1.0f);
+
+                        float mAngle = 360.0f * (float) ((System.currentTimeMillis() % 3000) / 3000.0f);
                         Matrix.rotateM(modelScreen, 0, mAngle, 0.0f, 1.0f, 0.0f);
                         Matrix.multiplyMM(modelView, 0, view, 0, modelScreen, 0);
                         Matrix.multiplyMM(modelViewProjection, 0, perspective, 0, modelView, 0);
                         GLES20.glVertexAttribPointer(positionParam, 3, GLES20.GL_FLOAT, false, 0, splashScreenVertices);
-                    }
-                    else {
+                    } else {
+                        // Object first appears directly in front of user.
+                        Matrix.translateM(modelScreen, 0, 0, 0, -bigScreenDistance);
+                        Matrix.scaleM(modelScreen, 0, bigScreenScale*1.2f, bigScreenScale, 1.0f);
+
                         Matrix.multiplyMM(modelView, 0, view, 0, modelScreen, 0);
                         Matrix.multiplyMM(modelViewProjection, 0, perspective, 0, modelView, 0);
                         GLES20.glVertexAttribPointer(positionParam, 3, GLES20.GL_FLOAT, false, 0, screenVertices);
                     }
+                }
+                else if (mVRMode == VRMODE_CARDBOARD)
+                {
+                    //Don't use head/eye transformation
+                    Matrix.translateM(modelScreen, 0, 0, 0, -gameScreenDistance);
+                    Matrix.scaleM(modelScreen, 0, gameScreenScale, gameScreenScale, 1.0f);
 
-                } else {
-
-                    // Create the triangles for orthographic projection (if required)
-                    int offset = 0;
-
-                    if (mVRMode == VRMODE_CARDBOARD)
-                        offset = QVRJNILib.getCentreOffset();
-
-                    if (eye.getType() == 1 || i == 1)
-                        offset *= -1;
-
+                    // Build the ModelView and ModelViewProjection matrices
+                    // for calculating screen position.
+                    Matrix.multiplyMM(modelView, 0, camera, 0, modelScreen, 0);
+                    Matrix.multiplyMM(modelViewProjection, 0, perspective, 0, modelView, 0);
+                    GLES20.glVertexAttribPointer(positionParam, 3, GLES20.GL_FLOAT, false, 0, screenVertices);
+                }
+                else //Side by side
+                {
                     int w = (int) eye.getViewport().width;
                     int h = (int) eye.getViewport().height;
                     int x = (int) 0;
                     int y = (int) 0;
-                    if (mVRMode == VRMODE_CARDBOARD)
-                    {
-                        //This assumes that height > width for an eye
-                        w = (int) eye.getViewport().width;
-                        h = (int) eye.getViewport().width;
-                        x = 0;
-                        y = (eye.getViewport().height - eye.getViewport().width) / 2;
-                    }
 
-                    SetupTriangle(offset + x, y, w, h);
+                    SetupTriangle(x, y, w, h);
 
                     // Calculate the projection and view transformation
                     Matrix.orthoM(view, 0, 0, eye.getViewport().width, 0, eye.getViewport().height, 0, 50);
